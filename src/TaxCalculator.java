@@ -3,26 +3,28 @@ package src;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-public class TaxCalculator {
+public class TaxCalculator_v4 {
     
     private static final double TAX_RATE = 0.10;
     
     /**
-     * 割引とポイント計算機能（税法準拠版）
+     * 割引とポイント計算機能（クーポン対応版）
      * 
      * @param unitPrice 商品単価
      * @param quantity 数量
      * @param discountRate 割引率（0.0〜1.0）
      * @param pointRate ポイント還元率（0.0〜1.0）
+     * @param couponAmount クーポン割引額
      * @return 最終支払額とポイント還元額
      */
     public BigDecimal[] calculateWithDiscountAndPoints(
-            int unitPrice, int quantity, double discountRate, double pointRate) {
+            int unitPrice, int quantity, double discountRate, 
+            double pointRate, int couponAmount) {
         
         BigDecimal price = new BigDecimal(unitPrice, java.math.MathContext.DECIMAL128);
         BigDecimal qty = new BigDecimal(quantity);
         
-        // 小計（税抜き）
+        // 小計
         BigDecimal subtotal = price.multiply(qty);
         
         // 割引を税抜き価格に適用
@@ -32,6 +34,14 @@ public class TaxCalculator {
         // 割引後小計
         BigDecimal discountedSubtotal = subtotal.subtract(discount);
         
+        // クーポン適用
+        if (couponAmount > 0) {
+            BigDecimal coupon = new BigDecimal(couponAmount);
+            // クーポン額が商品価格を超えないようにする
+            coupon = coupon.min(discountedSubtotal);
+            discountedSubtotal = discountedSubtotal.subtract(coupon);
+        }
+        
         // 消費税計算
         BigDecimal taxRate = new BigDecimal("0.10");
         BigDecimal tax = discountedSubtotal.multiply(taxRate);
@@ -40,7 +50,7 @@ public class TaxCalculator {
         // 税込み価格
         BigDecimal totalWithTax = discountedSubtotal.add(tax);
         
-        // ポイント計算（税込み価格に対して）
+        // ポイント計算
         BigDecimal points = totalWithTax.multiply(new BigDecimal(pointRate));
         points = points.setScale(0, RoundingMode.DOWN);
         
